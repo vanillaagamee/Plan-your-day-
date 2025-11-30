@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Habit & Schedule Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f9ff;--card:#ffffff;--primary:#2563eb;--accent:#ff7676;--muted:#6b7280}
+body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);margin:0;padding:24px;color:#0f172a}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.title{display:flex;flex-direction:column}
+h1{margin:0;color:var(--primary);font-size:22px}
+.subtitle{font-size:13px;color:var(--muted)}
+.controls{display:flex;gap:8px;align-items:center}
+.btn{background:var(--primary);color:white;padding:8px 12px;border-radius:10px;border:none;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--primary);border:1px solid rgba(37,99,235,0.15)}
+.container{display:grid;grid-template-columns:1fr 420px;gap:18px;margin-top:18px}
+.panel{background:var(--card);padding:16px;border-radius:14px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab-btn{padding:8px 12px;border-radius:10px;border:none;background:transparent;cursor:pointer}
+.tab-btn.active{background:linear-gradient(90deg,var(--primary),#1e4fc8);color:white}
+.input-row{display:flex;gap:8px;margin-bottom:12px}
+.input,select{flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef9}
+.time-input{width:120px}
+ul{list-style:none;padding:0;margin:0}
+li.task{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;margin-bottom:8px;transition:all .2s;border:1px solid rgba(15,23,42,0.03)}
+li.task .meta{font-size:12px;color:var(--muted)}
+li.task.done{background:#e6ffef;text-decoration:line-through;opacity:0.9}
+li.task input[type='checkbox']{transform:scale(1.2)}
+.icon-btn{background:transparent;border:none;cursor:pointer;padding:8px;border-radius:8px}
+.icon-btn.danger{background:rgba(255,118,118,0.12)}
+.small{font-size:13px}
+.chart-wrap{height:260px}
+.footer-note{font-size:12px;color:var(--muted);margin-top:10px}
+/* cute colors per list */
+#dailyList li{background:linear-gradient(180deg,#fff6fb,#fff);} 
+#weeklyList li{background:linear-gradient(180deg,#f7fff6,#fff);} 
+#monthlyList li{background:linear-gradient(180deg,#f3f8ff,#fff);} 
+/* dark */
+body.dark{background:#071025;color:#e6eef8}
+body.dark .panel{background:#071a2b;box-shadow:none}
+body.dark .input, body.dark .time-input{background:#042033;border:1px solid rgba(255,255,255,0.06);color:#e6eef8}
+body.dark .tab-btn.active{background:linear-gradient(90deg,#2b6ad6,#1446a6)}
+/* animations */
+@keyframes pop{0%{transform:scale(.97);opacity:0}100%{transform:scale(1);opacity:1}}
+li.task{animation:pop .25s ease}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">
+    <h1>Habit & Schedule Tracker</h1>
+    <div class="subtitle">Atur jadwal, lacak habit, dan lihat perkembangan 30 hari</div>
+  </div>
+  <div class="controls">
+    <button class="btn ghost" id="themeToggle">🌙 Dark</button>
+    <button class="btn" id="exportZip">Download ZIP</button>
+  </div>
+</div>
+
+<div class="container">
+  <div>
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="daily">Harian</button>
+        <button class="tab-btn" data-tab="weekly">Mingguan</button>
+        <button class="tab-btn" data-tab="monthly">Bulanan</button>
+        <button class="tab-btn" data-tab="planning">Planning Time</button>
+      </div>
+
+      <div id="daily" class="tab-content active">
+        <div class="input-row">
+          <input id="dailyText" class="input" placeholder="Tambahkan kegiatan harian (ex: Olahraga)" />
+          <input id="dailyTime" type="time" class="time-input" />
+          <button class="btn" onclick="addTask('daily')">Tambah</button>
+        </div>
+        <ul id="dailyList"></ul>
+      </div>
+
+      <div id="weekly" class="tab-content" style="display:none">
+        <div class="input-row">
+          <input id="weeklyText" class="input" placeholder="Tambahkan kegiatan mingguan (ex: Belajar)" />
+          <input id="weeklyTime" type="time" class="time-input" />
+          <button class="btn" onclick="addTask('weekly')">Tambah</button>
+        </div>
+        <ul id="weeklyList"></ul>
+      </div>
+
+      <div id="monthly" class="tab-content" style="display:none">
+        <div class="input-row">
+          <input id="monthlyText" class="input" placeholder="Tambahkan kegiatan bulanan (ex: Laporan)" />
+          <input id="monthlyTime" type="time" class="time-input" />
+          <button class="btn" onclick="addTask('monthly')">Tambah</button>
+        </div>
+        <ul id="monthlyList"></ul>
+      </div>
+
+      <div id="planning" class="tab-content" style="display:none">
+        <div class="small" style="margin-bottom:8px">Planning Time: atur tugas per jam. Gunakan pilihan + tombol tambah.</div>
+        <div class="input-row">
+          <select id="planSelect" class="input">
+            <option value="daily">Harian</option>
+            <option value="weekly">Mingguan</option>
+            <option value="monthly">Bulanan</option>
+          </select>
+          <input id="planText" class="input" placeholder="Tugas planning (ex: Fokus kerja 2 jam)" />
+          <input id="planTime" type="time" class="time-input" />
+          <button class="btn" onclick="addTask('plan')">Tambah</button>
+        </div>
+        <div class="footer-note">Catatan: planning memasukkan tugas ke list yang dipilih dengan waktu yang ditetapkan.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px" class="panel">
+      <h3 style="margin:0 0 10px 0">Instruksi singkat</h3>
+      <ul class="small">
+        <li>✔ Klik kotak untuk menandai selesai (akan tercatat ke grafik hari ini)</li>
+        <li>✏️ Klik teks tugas untuk mengedit. Tekan Enter atau klik di luar untuk menyimpan.</li>
+        <li>⏰ Tambahkan waktu untuk planning per jam</li>
+      </ul>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h3 style="margin-top:0">Perkembangan Habit (30 hari)</h3>
+      <div class="chart-wrap"><canvas id="habitChart"></canvas></div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;justify-content:space-between">
+        <div class="small">Menampilkan jumlah checklist yang diselesaikan per hari (30 hari terakhir)</div>
+        <div>
+          <button class="btn ghost" onclick="resetData()">Reset Data</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <h4 style="margin:0">Export / Import</h4>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn" onclick="exportJSON()">Export JSON</button>
+        <input type="file" id="importFile" style="display:none" onchange="importJSON(event)" />
+        <button class="btn ghost" onclick="document.getElementById('importFile').click()">Import JSON</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// --- Utilities ---
+const daysBack = 30;
+function todayKey(){return new Date().toISOString().slice(0,10)}
+function dateLabels(){const arr=[];for(let i=daysBack-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);arr.push(d.toISOString().slice(5,10));}return arr}
+
+// --- Storage keys ---
+const TASK_KEYS = {daily:'tasks_daily',weekly:'tasks_weekly',monthly:'tasks_monthly'}
+const HABIT_KEY = 'habit_log_v1';
+
+// --- Theme ---
+const themeToggle=document.getElementById('themeToggle');
+function applyTheme(){if(localStorage.getItem('theme')==='dark'){document.body.classList.add('dark');themeToggle.textContent='☀️ Light'}else{document.body.classList.remove('dark');themeToggle.textContent='🌙 Dark'}}
+themeToggle.onclick=()=>{localStorage.setItem('theme', document.body.classList.contains('dark')? 'light':'dark');applyTheme()}
+applyTheme();
+
+// --- Tab handling ---
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab-content').forEach(c=>c.style.display='none');document.getElementById(b.dataset.tab).style.display='block'}));
+
+// --- Tasks ---
+function loadTasks(){Object.keys(TASK_KEYS).forEach(key=>{const listId=key.replace('tasks_','').replace('_','');const raw=localStorage.getItem(TASK_KEYS[key]);const arr=raw?JSON.parse(raw):[];arr.forEach(t=>renderTask(listId,t))});
+// ensure habit log exists
+if(!localStorage.getItem(HABIT_KEY)){localStorage.setItem(HABIT_KEY,JSON.stringify({}));}
+updateChart();}
+
+function saveTasks(){Object.keys(TASK_KEYS).forEach(key=>{const listId=key.replace('tasks_','').replace('_','');const ul=document.getElementById(listId+'List');const items=[...ul.children].map(li=>({id:li.dataset.id,text:li.querySelector('.text').textContent,time:li.dataset.time||'',done:li.classList.contains('done')}));localStorage.setItem(TASK_KEYS[key],JSON.stringify(items));})}
+
+function generateId(){return 't'+Math.random().toString(36).slice(2,9)}
+
+function addTask(kind){let textEl, timeEl; if(kind==='daily'){textEl=document.getElementById('dailyText');timeEl=document.getElementById('dailyTime')}else if(kind==='weekly'){textEl=document.getElementById('weeklyText');timeEl=document.getElementById('weeklyTime')}else if(kind==='monthly'){textEl=document.getElementById('monthlyText');timeEl=document.getElementById('monthlyTime')}else if(kind==='plan'){const sel=document.getElementById('planSelect');const target=sel.value;document.getElementById(target+'Text').value=document.getElementById('planText').value;document.getElementById(target+'Time').value=document.getElementById('planTime').value;textEl=document.getElementById(target+'Text');timeEl=document.getElementById(target+'Time')}if(!textEl || !textEl.value.trim())return;const task={id:generateId(),text:textEl.value.trim(),time:timeEl.value||'',done:false};renderTask(kind==='plan'?document.getElementById('planSelect').value:kind,task);textEl.value='';if(timeEl)timeEl.value='';saveTasks();}
+
+function renderTask(listId,task){const ul=document.getElementById(listId+'List');const li=document.createElement('li');li.className='task';li.dataset.id=task.id;li.dataset.time=task.time||'';
+li.innerHTML = `
+  <input type='checkbox' ${task.done? 'checked':''} onchange='toggleDone(this)'>
+  <div style='flex:1'>
+    <div style='display:flex;gap:8px;align-items:center'>
+      <div class='text' style='font-weight:600;cursor:pointer' onclick='startEdit(this)'>${escapeHtml(task.text)}</div>
+      <div class='meta' style='margin-left:auto'>${task.time? '<span>⏰ '+task.time+'</span>': ''}</div>
+    </div>
+  </div>
+  <button class='icon-btn' onclick='startEdit(this)'>✏️</button>
+  <button class='icon-btn danger' onclick='removeTask(this)'>❌</button>
+`;
+if(task.done) li.classList.add('done');ul.prepend(li);}
+
+function escapeHtml(str){return str.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
+
+function startEdit(el){const li = el.closest('.task');const textDiv = li.querySelector('.text');const old = textDiv.textContent;const input = document.createElement('input');input.value=old;input.className='input';input.style.width='100%';
+textDiv.replaceWith(input);input.focus();input.onblur = ()=>{finishEdit(input,li)};input.onkeydown=(e)=>{if(e.key==='Enter')finishEdit(input,li)} }
+
+function finishEdit(input,li){const val = input.value.trim()||'(kosong)';const div = document.createElement('div');div.className='text';div.style.fontWeight='600';div.style.cursor='pointer';div.textContent=val;div.onclick = ()=> startEdit(div);li.querySelector('input[type=checkbox]');input.replaceWith(div);saveTasks();}
+
+function removeTask(btn){const li=btn.closest('li');const cb = li.querySelector('input[type=checkbox]');if(cb && cb.checked){ // if removing a checked task, decrement today's log
+  adjustHabitLog(todayKey(), -1);
+}
+li.remove();saveTasks();updateChart();}
+
+function toggleDone(cb){const li=cb.closest('li');const checked = cb.checked; if(checked){li.classList.add('done');adjustHabitLog(todayKey(), 1);}else{li.classList.remove('done');adjustHabitLog(todayKey(), -1);}saveTasks();updateChart();}
+
+// --- Habit Log ---
+function getHabitLog(){return JSON.parse(localStorage.getItem(HABIT_KEY)||'{}')}
+function setHabitLog(obj){localStorage.setItem(HABIT_KEY,JSON.stringify(obj))}
+function adjustHabitLog(dateKey,delta){const log=getHabitLog();log[dateKey]=Math.max(0,(log[dateKey]||0)+delta);setHabitLog(log)}
+
+function buildChartData(){const log=getHabitLog();const labels=dateLabels();const data=[];const base = new Date();for(let i=daysBack-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);data.push(log[k]||0);}return {labels:labels,data:data};}
+
+// --- Chart init ---
+const ctx = document.getElementById('habitChart').getContext('2d');let habitChart = new Chart(ctx,{type:'line',data:{labels:[],datasets:[{label:'Checklist selesai',data:[],fill:true,tension:0.3,pointRadius:4}]},options:{responsive:true,scales:{y:{beginAtZero:true,precision:0}}}});
+function updateChart(){const d = buildChartData();habitChart.data.labels = d.labels;habitChart.data.datasets[0].data = d.data;habitChart.update();}
+
+// --- Export / Import ---
+function exportJSON(){const payload={tasks:{daily:JSON.parse(localStorage.getItem(TASK_KEYS.daily)||'[]'),weekly:JSON.parse(localStorage.getItem(TASK_KEYS.weekly)||'[]'),monthly:JSON.parse(localStorage.getItem(TASK_KEYS.monthly)||'[]')},habit:getHabitLog(),theme:localStorage.getItem('theme')||'light'};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='habit-tracker-export.json';a.click();URL.revokeObjectURL(url)}
+function importJSON(e){const f=e.target.files[0];if(!f) return;const reader=new FileReader();reader.onload=()=>{try{const obj=JSON.parse(reader.result);if(obj.tasks){localStorage.setItem(TASK_KEYS.daily,JSON.stringify(obj.tasks.daily||[]));localStorage.setItem(TASK_KEYS.weekly,JSON.stringify(obj.tasks.weekly||[]));localStorage.setItem(TASK_KEYS.monthly,JSON.stringify(obj.tasks.monthly||[]));}if(obj.habit) setHabitLog(obj.habit);if(obj.theme) localStorage.setItem('theme',obj.theme);location.reload()}catch(err){alert('File tidak valid')}};reader.readAsText(f)}
+
+// --- Reset ---
+function resetData(){if(confirm('Yakin ingin mereset semua data?')){localStorage.removeItem(TASK_KEYS.daily);localStorage.removeItem(TASK_KEYS.weekly);localStorage.removeItem(TASK_KEYS.monthly);localStorage.removeItem(HABIT_KEY);location.reload();}}
+
+// --- Zip export (simple single-file zip) ---
+async function exportZip(){const html = '<!doctype html>
+' + document.documentElement.outerHTML;const blob=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='habit-tracker.html';a.click();}
+document.getElementById('exportZip').onclick=exportZip;
+
+// --- Init load ---
+loadTasks();
+
+// update chart every minute (in case user toggles) --- optional
+setInterval(updateChart, 5*1000);
+</script>
+</body>
+</html>
